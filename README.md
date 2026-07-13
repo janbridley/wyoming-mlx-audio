@@ -196,6 +196,7 @@ The Granite Speech STT service will now be available for voice assistants.
 ```sh
 uv sync --extra dev
 uv run pre-commit install
+uv run wyoming-mlx-audio # locally run the server
 ```
 
 Run the test suite (mocked, no GPU needed):
