@@ -1,4 +1,5 @@
 import asyncio
+import sys
 from wyoming.client import AsyncClient
 from wyoming.asr import Transcribe
 from wyoming.audio import AudioChunk, AudioStop
@@ -6,9 +7,10 @@ import wave
 
 
 async def main():
-    with wave.open(
-        "/Users/jenna/Downloads/sample-speech-1m.wav"
-    ) as w:  # 16k, 16-bit, mono
+    if len(sys.argv) < 2:
+        print(f"Usage: {sys.argv[0]} <16k-16bit-mono.wav>")  # noqa: T201
+        sys.exit(1)
+    with wave.open(sys.argv[1]) as w:  # 16k, 16-bit, mono
         pcm = w.readframes(w.getnframes())
     async with AsyncClient.from_uri("tcp://127.0.0.1:7891") as c:
         await c.write_event(
