@@ -5,14 +5,14 @@ build-backend = "hatchling.build"
 [project]
 name = "wyoming-mlx-audio"
 dynamic = ["version"]
-description = "Wyoming Server for MLX whisper"
+description = "Wyoming STT server for IBM Granite Speech via mlx-audio"
 readme = "README.md"
 license = "MIT"
 authors = [
     { name = "Bas Nijholt", email = "bas@nijho.lt" },
     { name = "Vincent Lin" },
 ]
-keywords = ["rhasspy", "wyoming", "mlx", "whisper", "stt"]
+keywords = ["rhasspy", "wyoming", "mlx", "granite", "stt", "speech-to-text"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
@@ -25,9 +25,10 @@ classifiers = [
 ]
 requires-python = ">=3.10,<3.14"
 dependencies = [
-    "mlx-whisper",
+    "mlx-audio[stt]",
     "numpy",
     "rich",
+    "soundfile",
     "typer",
     "wyoming",
 ]
@@ -49,9 +50,20 @@ wyoming-mlx-audio = "wyoming_mlx_audio.__main__:run"
 Homepage = "https://github.com/janbridley/wyoming-mlx-audio"
 Repository = "https://github.com/janbridley/wyoming-mlx-audio.git"
 
+# Local path to janbridley/mlx-audio submodule for better performance.
+# TODO: replace when changes are merged into Blaizzy/mlx-audio
+[tool.uv.sources]
+mlx-audio = { path = "mlx-audio", editable = true }
+
 [tool.ruff]
 target-version = "py310"
 line-length = 88
+extend-exclude = [
+    "mlx-audio", # git submodule (third-party fork) -- has its own lint config
+    "bench_models.py", # root-level dev benchmark script, intentionally not lint-clean
+    "client.py", # root-level dev Wyoming client, intentionally not lint-clean
+    "transcribe.py", # root-level dev Wyoming client, intentionally not lint-clean
+]
 
 [tool.ruff.lint]
 select = ["ALL"]
@@ -73,6 +85,9 @@ known-first-party = ["wyoming_mlx_audio"]
 ]
 "wyoming_mlx_audio/__main__.py" = [
     "PLC0415", # lazy import for fast --help
+]
+"wyoming_mlx_audio/server.py" = [
+    "PLC0415", # lazy import of the heavy mlx-audio stack for fast startup
 ]
 
 [tool.pytest.ini_options]

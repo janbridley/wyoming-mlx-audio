@@ -4,53 +4,52 @@ import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from wyoming_mlx_audio import __version__
-from wyoming_mlx_audio.const import WHISPER_LANGUAGES
+from wyoming_mlx_audio.const import SUPPORTED_LANGUAGES
 from wyoming_mlx_audio.server import _create_wyoming_info, run_server
+
+MODEL = "mlx-community/granite-speech-4.1-2b-nar-mlx"
 
 
 class TestCreateWyomingInfo:
     """Tests for _create_wyoming_info function."""
 
     def test_creates_info_with_model(self) -> None:
-        """Test that info is created with the correct model."""
-        model = "mlx-community/whisper-large-v3-turbo"
-        info = _create_wyoming_info(model)
+        """A single AsrModel is created for the given repo."""
+        info = _create_wyoming_info(MODEL)
 
         assert info.asr is not None
         assert len(info.asr) == 1
-        assert info.asr[0].name == "mlx-whisper"
+        assert info.asr[0].name == "mlx-audio"
         assert len(info.asr[0].models) == 1
-        assert info.asr[0].models[0].name == model
+        assert info.asr[0].models[0].name == MODEL
 
-    def test_includes_whisper_languages(self) -> None:
-        """Test that all Whisper languages are included."""
-        info = _create_wyoming_info("test-model")
-
-        assert info.asr[0].models[0].languages == WHISPER_LANGUAGES
+    def test_includes_supported_languages(self) -> None:
+        """The model advertises the supported languages."""
+        info = _create_wyoming_info(MODEL)
+        assert info.asr[0].models[0].languages == SUPPORTED_LANGUAGES
 
     def test_includes_version(self) -> None:
-        """Test that version is included in info."""
-        info = _create_wyoming_info("test-model")
+        """Version is included in info."""
+        info = _create_wyoming_info(MODEL)
 
         assert info.asr[0].version == __version__
         assert info.asr[0].models[0].version == __version__
 
     def test_attribution(self) -> None:
-        """Test that attribution is set correctly."""
-        info = _create_wyoming_info("test-model")
+        """Attribution points to mlx-audio and the model repo."""
+        info = _create_wyoming_info(MODEL)
 
         # Program attribution
-        assert info.asr[0].attribution.name == "MLX Community"
-        assert "ml-explore" in info.asr[0].attribution.url
+        assert info.asr[0].attribution.name == "Blaizzy mlx-audio"
+        assert "Blaizzy/mlx-audio" in info.asr[0].attribution.url
 
         # Model attribution
-        assert info.asr[0].models[0].attribution.name == "OpenAI Whisper"
-        assert "openai" in info.asr[0].models[0].attribution.url
+        assert info.asr[0].models[0].attribution.name == "mlx-community"
+        assert MODEL in info.asr[0].models[0].attribution.url
 
     def test_installed_flags(self) -> None:
-        """Test that installed flags are set."""
-        info = _create_wyoming_info("test-model")
-
+        """Installed flags are set."""
+        info = _create_wyoming_info(MODEL)
         assert info.asr[0].installed is True
         assert info.asr[0].models[0].installed is True
 
@@ -59,121 +58,66 @@ class TestRunServer:
     """Tests for run_server function."""
 
     def test_logs_startup_banner(self) -> None:
-        """Test that run_server logs startup information."""
+        """run_server logs startup information including the model name."""
         with (
             patch("wyoming_mlx_audio.server._LOGGER") as mock_logger,
-            patch("wyoming_mlx_audio.server.load_model"),
+            patch("wyoming_mlx_audio.server._load_model", return_value=MagicMock()),
             patch("wyoming_mlx_audio.server.asyncio.run"),
         ):
-            run_server(
-                uri="tcp://localhost:10300",
-                model="test-model",
-                language="en",
-                debug=False,
-            )
+            run_server(uri="tcp://localhost:7891", model="test-model", debug=False)
 
-            # Check that startup messages were logged
             calls = " ".join(str(call) for call in mock_logger.info.call_args_list)
-            assert "Wyoming MLX Whisper" in calls
-            assert "Loading model" in calls
-            assert "Model loaded" in calls
-
-    def test_loads_model(self) -> None:
-        """Test that run_server loads the specified model."""
-        with (
-            patch("wyoming_mlx_audio.server._LOGGER"),
-            patch("wyoming_mlx_audio.server.load_model") as mock_load,
-            patch("wyoming_mlx_audio.server.asyncio.run"),
-        ):
-            run_server(
-                uri="tcp://localhost:10300",
-                model="mlx-community/whisper-tiny",
-                language=None,
-                debug=False,
-            )
-
-            mock_load.assert_called_once_with("mlx-community/whisper-tiny")
+            assert "Wyoming MLX Audio" in calls
+            assert "test-model" in calls
 
     def test_runs_async_server(self) -> None:
-        """Test that run_server starts the async server."""
+        """run_server starts the async server with the debug flag."""
         with (
             patch("wyoming_mlx_audio.server._LOGGER"),
-            patch("wyoming_mlx_audio.server.load_model"),
+            patch("wyoming_mlx_audio.server._load_model", return_value=MagicMock()),
             patch("wyoming_mlx_audio.server.asyncio.run") as mock_run,
         ):
-            run_server(
-                uri="tcp://localhost:10300",
-                model="test-model",
-                language=None,
-                debug=True,
-            )
+            run_server(uri="tcp://localhost:7891", model="test-model", debug=True)
 
             mock_run.assert_called_once()
-            # Check debug flag was passed
             assert mock_run.call_args[1]["debug"] is True
 
     def test_handles_keyboard_interrupt(self) -> None:
-        """Test that KeyboardInterrupt is handled gracefully."""
+        """KeyboardInterrupt is handled gracefully."""
         with (
             patch("wyoming_mlx_audio.server._LOGGER"),
-            patch("wyoming_mlx_audio.server.load_model"),
+            patch("wyoming_mlx_audio.server._load_model", return_value=MagicMock()),
             patch(
                 "wyoming_mlx_audio.server.asyncio.run",
                 side_effect=KeyboardInterrupt,
             ),
         ):
-            # Should not raise
-            run_server(
-                uri="tcp://localhost:10300",
-                model="test-model",
-                language=None,
-                debug=False,
-            )
+            run_server(uri="tcp://localhost:7891", model="test-model", debug=False)
 
-    def test_logs_language_auto_when_none(self) -> None:
-        """Test that 'auto' is logged when language is None."""
-        with (
-            patch("wyoming_mlx_audio.server._LOGGER") as mock_logger,
-            patch("wyoming_mlx_audio.server.load_model"),
-            patch("wyoming_mlx_audio.server.asyncio.run"),
-        ):
-            run_server(
-                uri="tcp://localhost:10300",
-                model="test-model",
-                language=None,
-                debug=False,
-            )
-
-            # Check that 'auto' was used for language
-            calls = " ".join(str(call) for call in mock_logger.info.call_args_list)
-            assert "auto" in calls
-
-    def test_passes_initial_prompt_to_handler(self) -> None:
-        """Test that run_server passes the configured initial prompt to handlers."""
+    def test_passes_loaded_model_to_handler_factory(self) -> None:
+        """The handler factory receives the loaded model."""
         real_asyncio_run = asyncio.run
+        mock_model = MagicMock()
         mock_server = MagicMock()
         mock_server.run = AsyncMock()
 
         with (
             patch("wyoming_mlx_audio.server._LOGGER"),
-            patch("wyoming_mlx_audio.server.load_model"),
+            patch(
+                "wyoming_mlx_audio.server._load_model",
+                return_value=mock_model,
+            ),
             patch(
                 "wyoming_mlx_audio.server.AsyncServer.from_uri",
                 return_value=mock_server,
             ),
-            patch("wyoming_mlx_audio.server.WhisperEventHandler") as mock_handler,
+            patch("wyoming_mlx_audio.server.MlxAudioEventHandler") as mock_handler,
             patch(
                 "wyoming_mlx_audio.server.asyncio.run",
                 side_effect=lambda coro, debug: real_asyncio_run(coro, debug=debug),
             ),
         ):
-            run_server(
-                uri="tcp://localhost:10300",
-                model="test-model",
-                language="en",
-                initial_prompt="Custom vocabulary",
-                debug=False,
-            )
+            run_server(uri="tcp://localhost:7891", model="test-model", debug=False)
 
             mock_server.run.assert_awaited_once()
             await_args = mock_server.run.await_args
@@ -185,8 +129,38 @@ class TestRunServer:
 
         mock_handler.assert_called_once()
         call_args = mock_handler.call_args
-        assert call_args.args[1] == "test-model"
-        assert call_args.args[2] == "en"
-        assert call_args.args[3] == "Custom vocabulary"
-        assert call_args.args[4] is reader
-        assert call_args.args[5] is writer
+        assert call_args.args[1] is mock_model  # the loaded model
+        assert call_args.args[2] is reader
+        assert call_args.args[3] is writer
+
+    def test_preload_warms_up_when_requested(self) -> None:
+        """When preload is True the loaded model is warmed up."""
+        real_asyncio_run = asyncio.run
+        mock_model = MagicMock()
+        mock_model.generate.return_value.text = "warmup"
+        mock_server = MagicMock()
+        mock_server.run = AsyncMock()
+
+        with (
+            patch("wyoming_mlx_audio.server._LOGGER"),
+            patch(
+                "wyoming_mlx_audio.server._load_model",
+                return_value=mock_model,
+            ),
+            patch(
+                "wyoming_mlx_audio.server.AsyncServer.from_uri",
+                return_value=mock_server,
+            ),
+            patch(
+                "wyoming_mlx_audio.server.asyncio.run",
+                side_effect=lambda coro, debug: real_asyncio_run(coro, debug=debug),
+            ),
+        ):
+            run_server(
+                uri="tcp://localhost:7891",
+                model="test-model",
+                debug=False,
+                preload=True,
+            )
+
+            mock_model.generate.assert_called_once()
