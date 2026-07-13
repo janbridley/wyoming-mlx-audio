@@ -10,7 +10,6 @@ import asyncio
 import contextlib
 import socket
 from collections.abc import Awaitable, Callable
-from pathlib import Path
 
 import numpy as np
 import pytest
@@ -42,17 +41,22 @@ class _FakeModel:
         return _FakeOutput(self._text)
 
 
-def _skip_if_no_unix_socket(socket_path: Path) -> None:
-    """Skip the test if unix sockets cannot be bound in this environment."""
-    with contextlib.suppress(FileNotFoundError):
-        socket_path.unlink()
+def _free_port() -> int:
+    """Reserve an ephemeral loopback TCP port the OS hands out for the test.
+
+    We bind over TCP rather than a unix socket: macOS caps AF_UNIX paths at
+    104 bytes, and pytest's ``tmp_path`` exceeds that, so socket ``bind()``
+    silently fails and skips the test. Loopback TCP has no such limit and
+    works identically on macOS and Linux CI.
+    """
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:
-        sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        sock.bind(str(socket_path))
-        sock.close()
+        sock.bind(("127.0.0.1", 0))
     except OSError:
-        pytest.skip("unix sockets unavailable in this environment")
-    socket_path.unlink(missing_ok=True)
+        pytest.skip("loopback TCP bind unavailable in this environment")
+    port = sock.getsockname()[1]
+    sock.close()
+    return port
 
 
 def _make_factory(wyoming_info: Info, model: _FakeModel) -> object:
@@ -70,13 +74,13 @@ def _make_factory(wyoming_info: Info, model: _FakeModel) -> object:
 
 
 async def _run_against_server(
-    socket_path: Path,
+    port: int,
     model: _FakeModel,
     *,
     run_client: Callable[[AsyncClient], Awaitable[None]],
 ) -> None:
-    """Start a server on a unix socket and drive it with ``run_client``."""
-    uri = f"unix://{socket_path}"
+    """Start a server on a loopback TCP port and drive it with ``run_client``."""
+    uri = f"tcp://127.0.0.1:{port}"
     wyoming_info = _create_wyoming_info(DEFAULT_MODEL)
     server = AsyncServer.from_uri(uri)
     factory = _make_factory(wyoming_info, model)
@@ -89,7 +93,6 @@ async def _run_against_server(
     finally:
         server_task.cancel()
         await server_task
-        socket_path.unlink(missing_ok=True)
 
 
 async def _serve(server: AsyncServer, factory: object) -> None:
@@ -99,10 +102,9 @@ async def _serve(server: AsyncServer, factory: object) -> None:
 
 
 @pytest.mark.asyncio
-async def test_describe_and_transcribe(tmp_path: Path) -> None:
+async def test_describe_and_transcribe() -> None:
     """A client can describe and transcribe against the running server."""
-    socket_path = tmp_path / "wyoming.sock"
-    _skip_if_no_unix_socket(socket_path)
+    port = _free_port()
     model = _FakeModel("hello world")
     pcm = np.zeros(SAMPLE_RATE, dtype=np.int16).tobytes()
 
@@ -127,20 +129,19 @@ async def test_describe_and_transcribe(tmp_path: Path) -> None:
         assert transcript.text == "hello world"
 
     await _run_against_server(
-        socket_path,
+        port,
         model,
         run_client=client_flow,
     )
 
 
 @pytest.mark.asyncio
-async def test_transcribe_without_named_model(tmp_path: Path) -> None:
+async def test_transcribe_without_named_model() -> None:
     """A Transcribe event without (or with an unknown) name still transcribes.
 
     The server runs a single model, so the name is advisory only.
     """
-    socket_path = tmp_path / "wyoming2.sock"
-    _skip_if_no_unix_socket(socket_path)
+    port = _free_port()
     model = _FakeModel("ok")
     pcm = np.zeros(SAMPLE_RATE, dtype=np.int16).tobytes()
 
@@ -155,7 +156,7 @@ async def test_transcribe_without_named_model(tmp_path: Path) -> None:
         assert transcript.text == "ok"
 
     await _run_against_server(
-        socket_path,
+        port,
         model,
         run_client=client_flow,
     )
