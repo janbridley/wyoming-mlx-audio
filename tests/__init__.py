@@ -1,1 +1,1 @@
-"""Tests for wyoming-mlx-whisper."""
+"""Tests for wyoming-mlx-audio."""

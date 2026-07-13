@@ -1,6 +1,6 @@
 """Tests for the event handler."""
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import numpy as np
 import pytest
@@ -9,7 +9,7 @@ from wyoming.audio import AudioChunk, AudioStop
 from wyoming.event import Event
 from wyoming.info import Describe, Info
 
-from wyoming_mlx_whisper.handler import WhisperEventHandler, _pcm_to_float
+from wyoming_mlx_audio.handler import MlxAudioEventHandler, _pcm_to_float
 
 
 class TestPcmToFloat:
@@ -52,8 +52,15 @@ class TestPcmToFloat:
         assert result.max() <= 1.0
 
 
-class TestWhisperEventHandler:
-    """Tests for WhisperEventHandler class."""
+def _make_model(text: str = "Hello world") -> MagicMock:
+    """Create a mock model whose generate() returns an object with .text."""
+    model = MagicMock()
+    model.generate.return_value.text = text
+    return model
+
+
+class TestMlxAudioEventHandler:
+    """Tests for MlxAudioEventHandler class."""
 
     @pytest.fixture
     def mock_wyoming_info(self) -> Info:
@@ -61,78 +68,41 @@ class TestWhisperEventHandler:
         return MagicMock(spec=Info)
 
     @pytest.fixture
-    def mock_model(self) -> str:
-        """Create mock model name."""
-        return "mlx-community/whisper-large-v3-turbo"
-
-    @pytest.fixture
     def handler(
         self,
         mock_wyoming_info: Info,
-        mock_model: str,
-    ) -> WhisperEventHandler:
+    ) -> MlxAudioEventHandler:
         """Create a handler instance for testing."""
-        handler = WhisperEventHandler(
+        handler = MlxAudioEventHandler(
             mock_wyoming_info,
-            mock_model,
-            language=None,
+            _make_model(),
             reader=MagicMock(),
             writer=MagicMock(),
         )
         handler.write_event = AsyncMock()
         return handler
 
-    def test_init(
-        self,
-        mock_wyoming_info: Info,
-        mock_model: str,
-    ) -> None:
+    def test_init(self, mock_wyoming_info: Info) -> None:
         """Test handler initialization."""
-        handler = WhisperEventHandler(
+        model = _make_model()
+        handler = MlxAudioEventHandler(
             mock_wyoming_info,
-            mock_model,
-            language="en",
+            model,
             reader=MagicMock(),
             writer=MagicMock(),
         )
-        assert handler._model == "mlx-community/whisper-large-v3-turbo"
-        assert handler._language == "en"
+        assert handler._model is model
         assert handler._audio == b""
 
-    def test_reset(self, handler: WhisperEventHandler) -> None:
-        """Test audio buffer and context reset."""
+    def test_reset(self, handler: MlxAudioEventHandler) -> None:
+        """Test audio buffer reset."""
         handler._audio = b"some audio data"
-        handler._initial_prompt = "test prompt"
         handler._reset()
         assert handler._audio == b""
-        assert handler._initial_prompt is None
-
-    def test_reset_restores_configured_initial_prompt(
-        self,
-        mock_wyoming_info: Info,
-        mock_model: str,
-    ) -> None:
-        """Test reset restores the startup initial prompt."""
-        handler = WhisperEventHandler(
-            mock_wyoming_info,
-            mock_model,
-            language=None,
-            initial_prompt="Default vocabulary",
-            reader=MagicMock(),
-            writer=MagicMock(),
-        )
-        handler._audio = b"some audio data"
-        handler._initial_prompt = "request vocabulary"
-
-        handler._reset()
-
-        assert handler._audio == b""
-        assert handler._initial_prompt == "Default vocabulary"
 
     @pytest.mark.asyncio
-    async def test_handle_audio_chunk(self, handler: WhisperEventHandler) -> None:
+    async def test_handle_audio_chunk(self, handler: MlxAudioEventHandler) -> None:
         """Test handling of audio chunks."""
-        # Create a mock audio chunk event
         chunk = AudioChunk(
             rate=16000,
             width=2,
@@ -147,26 +117,20 @@ class TestWhisperEventHandler:
         assert len(handler._audio) > 0
 
     @pytest.mark.asyncio
-    async def test_handle_audio_stop(self, handler: WhisperEventHandler) -> None:
-        """Test handling of audio stop event."""
-        # Pre-fill some audio data
+    async def test_handle_audio_stop(self, handler: MlxAudioEventHandler) -> None:
+        """Test handling of audio stop event triggers transcription."""
         handler._audio = np.zeros(16000, dtype=np.int16).tobytes()  # 1 second
 
-        # Mock the transcription
-        with patch.object(
-            handler,
-            "_transcribe",
-            return_value="Hello world",
-        ):
-            event = AudioStop().event()
-            result = await handler.handle_event(event)
+        event = AudioStop().event()
+        result = await handler.handle_event(event)
 
         assert result is False
         assert handler._audio == b""  # Should be reset
+        handler._model.generate.assert_called_once()
         handler.write_event.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_handle_describe(self, handler: WhisperEventHandler) -> None:
+    async def test_handle_describe(self, handler: MlxAudioEventHandler) -> None:
         """Test handling of describe event."""
         event = Describe().event()
         result = await handler.handle_event(event)
@@ -175,124 +139,50 @@ class TestWhisperEventHandler:
         handler.write_event.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_transcribe_calls_mlx_whisper(
-        self,
-        handler: WhisperEventHandler,
-    ) -> None:
-        """Test that _transcribe calls mlx_whisper correctly."""
-        audio = np.zeros(16000, dtype=np.float32)
-
-        with patch("wyoming_mlx_whisper.handler.mlx_whisper") as mock_mlx:
-            mock_mlx.transcribe.return_value = {"text": "test transcription"}
-            result = handler._transcribe(audio)
-
-        assert result == "test transcription"
-        mock_mlx.transcribe.assert_called_once()
-        call_args = mock_mlx.transcribe.call_args
-        assert call_args.kwargs["path_or_hf_repo"] == handler._model
-
-    @pytest.mark.asyncio
-    async def test_transcribe_with_language(
+    async def test_transcribe_passes_array_to_model(
         self,
         mock_wyoming_info: Info,
-        mock_model: str,
     ) -> None:
-        """Test that _transcribe passes language when set."""
-        handler = WhisperEventHandler(
+        """_transcribe hands the audio array directly to model.generate."""
+        model = _make_model("custom result")
+        handler = MlxAudioEventHandler(
             mock_wyoming_info,
-            mock_model,
-            language="en",
+            model,
             reader=MagicMock(),
             writer=MagicMock(),
         )
         audio = np.zeros(16000, dtype=np.float32)
 
-        with patch("wyoming_mlx_whisper.handler.mlx_whisper") as mock_mlx:
-            mock_mlx.transcribe.return_value = {"text": "hello"}
-            result = handler._transcribe(audio)
+        result = await handler._transcribe(audio)
 
-        assert result == "hello"
-        call_args = mock_mlx.transcribe.call_args
-        assert call_args.kwargs["language"] == "en"
+        assert result == "custom result"
+        model.generate.assert_called_once_with(audio)
 
     @pytest.mark.asyncio
-    async def test_handle_transcribe_event(self, handler: WhisperEventHandler) -> None:
-        """Test handling of Transcribe event."""
-        event = Transcribe().event()
-        result = await handler.handle_event(event)
-
-        assert result is True
-
-    @pytest.mark.asyncio
-    async def test_handle_transcribe_event_with_initial_prompt(
+    async def test_handle_transcribe_event_accepted(
         self,
-        handler: WhisperEventHandler,
+        handler: MlxAudioEventHandler,
     ) -> None:
-        """Test handling of Transcribe event with initial_prompt in context."""
-        event = Transcribe(context={"initial_prompt": "Custom vocabulary"}).event()
+        """A Transcribe event is accepted (single-model: name is ignored)."""
+        event = Transcribe(name="anything").event()
         result = await handler.handle_event(event)
 
         assert result is True
-        assert handler._initial_prompt == "Custom vocabulary"
 
     @pytest.mark.asyncio
     async def test_handle_transcribe_event_without_context(
         self,
-        handler: WhisperEventHandler,
+        handler: MlxAudioEventHandler,
     ) -> None:
-        """Test handling of Transcribe event without context."""
+        """A Transcribe event without context is accepted."""
         event = Transcribe(context=None).event()
         result = await handler.handle_event(event)
 
         assert result is True
-        assert handler._initial_prompt is None
 
     @pytest.mark.asyncio
-    async def test_transcribe_with_initial_prompt(
-        self,
-        handler: WhisperEventHandler,
-    ) -> None:
-        """Test that _transcribe passes initial_prompt when set."""
-        handler._initial_prompt = "Custom vocabulary hint"
-        audio = np.zeros(16000, dtype=np.float32)
-
-        with patch("wyoming_mlx_whisper.handler.mlx_whisper") as mock_mlx:
-            mock_mlx.transcribe.return_value = {"text": "transcribed text"}
-            result = handler._transcribe(audio)
-
-        assert result == "transcribed text"
-        call_args = mock_mlx.transcribe.call_args
-        assert call_args.kwargs["initial_prompt"] == "Custom vocabulary hint"
-
-    @pytest.mark.asyncio
-    async def test_transcribe_with_configured_initial_prompt(
-        self,
-        mock_wyoming_info: Info,
-        mock_model: str,
-    ) -> None:
-        """Test that _transcribe passes the startup initial_prompt when set."""
-        handler = WhisperEventHandler(
-            mock_wyoming_info,
-            mock_model,
-            language=None,
-            initial_prompt="Default vocabulary hint",
-            reader=MagicMock(),
-            writer=MagicMock(),
-        )
-        audio = np.zeros(16000, dtype=np.float32)
-
-        with patch("wyoming_mlx_whisper.handler.mlx_whisper") as mock_mlx:
-            mock_mlx.transcribe.return_value = {"text": "transcribed text"}
-            result = handler._transcribe(audio)
-
-        assert result == "transcribed text"
-        call_args = mock_mlx.transcribe.call_args
-        assert call_args.kwargs["initial_prompt"] == "Default vocabulary hint"
-
-    @pytest.mark.asyncio
-    async def test_handle_unknown_event(self, handler: WhisperEventHandler) -> None:
+    async def test_handle_unknown_event(self, handler: MlxAudioEventHandler) -> None:
         """Test handling of unknown event type."""
-        # Create an event with an unknown type
         event = Event(type="unknown-event-type")
         result = await handler.handle_event(event)
 

@@ -1,4 +1,4 @@
-"""Wyoming server for MLX Whisper."""
+"""Wyoming server for MLX Audio (IBM Granite Speech)."""
 
 try:
     from ._version import __version__, __version_tuple__

@@ -1,0 +1,3 @@
+[submodule "mlx-audio"]
+	path = mlx-audio
+	url = https://github.com/janbridley/mlx-audio.git

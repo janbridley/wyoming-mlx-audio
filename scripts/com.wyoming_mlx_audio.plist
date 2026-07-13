@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
   <key>Label</key>
-  <string>com.wyoming_mlx_whisper</string>
+  <string>com.wyoming_mlx_audio</string>
   <key>ProgramArguments</key>
   <array>
     <string><UV-PATH></string>
@@ -11,7 +11,7 @@
     <string>run</string>
     <string>--python</string>
     <string>3.12</string>
-    <string>wyoming-mlx-whisper</string>
+    <string>wyoming-mlx-audio</string>
   </array>
   <key>RunAtLoad</key>
   <true/>

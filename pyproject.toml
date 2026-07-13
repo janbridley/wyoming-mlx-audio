@@ -3,16 +3,17 @@ requires = ["hatchling", "hatch-vcs"]
 build-backend = "hatchling.build"
 
 [project]
-name = "wyoming-mlx-whisper"
+name = "wyoming-mlx-audio"
 dynamic = ["version"]
-description = "Wyoming Server for MLX whisper"
+description = "Wyoming STT server for IBM Granite Speech via mlx-audio"
 readme = "README.md"
 license = "MIT"
 authors = [
+    { name = "Jenna Bradley", email = "bradleyjenj@gmail.com" },
     { name = "Bas Nijholt", email = "bas@nijho.lt" },
     { name = "Vincent Lin" },
 ]
-keywords = ["rhasspy", "wyoming", "mlx", "whisper", "stt"]
+keywords = ["rhasspy", "wyoming", "mlx", "granite", "stt", "speech-to-text"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
@@ -25,7 +26,7 @@ classifiers = [
 ]
 requires-python = ">=3.10,<3.14"
 dependencies = [
-    "mlx-whisper",
+    "mlx-audio[stt]",
     "numpy",
     "rich",
     "typer",
@@ -36,6 +37,7 @@ dependencies = [
 dev = [
     "pre-commit",
     "pytest",
+    "soundfile",  # only used by the dev transcribe.py client
     "pytest-asyncio",
     "pytest-cov",
     "mypy",
@@ -43,15 +45,25 @@ dev = [
 ]
 
 [project.scripts]
-wyoming-mlx-whisper = "wyoming_mlx_whisper.__main__:run"
+wyoming-mlx-audio = "wyoming_mlx_audio.__main__:run"
 
 [project.urls]
-Homepage = "https://github.com/basnijholt/wyoming-mlx-whisper"
-Repository = "https://github.com/basnijholt/wyoming-mlx-whisper.git"
+Homepage = "https://github.com/janbridley/wyoming-mlx-audio"
+Repository = "https://github.com/janbridley/wyoming-mlx-audio.git"
+
+# Local path to janbridley/mlx-audio submodule for better performance.
+# TODO: replace when changes are merged into Blaizzy/mlx-audio
+[tool.uv.sources]
+mlx-audio = { path = "mlx-audio", editable = true }
 
 [tool.ruff]
 target-version = "py310"
 line-length = 88
+extend-exclude = [
+    "mlx-audio", # git submodule (third-party fork) -- has its own lint config
+    "client.py", # root-level dev Wyoming client, intentionally not lint-clean
+    "transcribe.py", # root-level dev Wyoming client, intentionally not lint-clean
+]
 
 [tool.ruff.lint]
 select = ["ALL"]
@@ -63,7 +75,7 @@ ignore = [
 ]
 
 [tool.ruff.lint.isort]
-known-first-party = ["wyoming_mlx_whisper"]
+known-first-party = ["wyoming_mlx_audio"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**/*.py" = [
@@ -71,14 +83,17 @@ known-first-party = ["wyoming_mlx_whisper"]
     "SLF001",  # private member access allowed in tests
     "PLR2004", # magic values allowed in tests
 ]
-"wyoming_mlx_whisper/__main__.py" = [
+"wyoming_mlx_audio/__main__.py" = [
     "PLC0415", # lazy import for fast --help
+]
+"wyoming_mlx_audio/server.py" = [
+    "PLC0415", # lazy import of the heavy mlx-audio stack for fast startup
 ]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
-addopts = "--cov=wyoming_mlx_whisper --cov-report=term-missing"
+addopts = "--cov=wyoming_mlx_audio --cov-report=term-missing"
 filterwarnings = [
     "ignore:coroutine .* was never awaited:RuntimeWarning",
 ]
@@ -96,4 +111,4 @@ ignore_missing_imports = true
 source = "vcs"
 
 [tool.hatch.build.hooks.vcs]
-version-file = "wyoming_mlx_whisper/_version.py"
+version-file = "wyoming_mlx_audio/_version.py"
