@@ -23,10 +23,8 @@ a detailed breakdown.
 | Model                                                                                                               | Size    | Type      | Notes                                                                       |
 | ------------------------------------------------------------------------------------------------------------------- | ------- | --------- | --------------------------------------------------------------------------- |
 | [`mlx-community/granite-speech-4.1-2b-nar-mlx`](https://huggingface.co/mlx-community/granite-speech-4.1-2b-nar-mlx) | ~4.5 GB | NAR (CTC) | **Default**. Transcription, multilingual auto-detect, no language steering. |
-| `mlx-community/granite-speech-4.0-...-mlx`                                                                          | varies  | AR        | Optional. Supports translation via `language=`. Add with `--model`.         |
 
-Use `--model <repo>` to add more models (repeatable). Use `--default-model <repo>` to
-pick which one Home Assistant uses when it doesn't name one.
+Pass `--model <repo>` to use a different mlx-audio STT model.
 
 <details><summary><b><u>[ToC]</u></b></summary>
 
@@ -91,16 +89,10 @@ without starting the server:
 wyoming-mlx-audio --download-only
 ```
 
-To load and warm up all models at startup (compiles Metal kernels once):
+To load and warm up the model at startup (compiles Metal kernels once):
 
 ```sh
 wyoming-mlx-audio --preload
-```
-
-To run more than one model and select per Home Assistant pipeline:
-
-```sh
-wyoming-mlx-audio --model mlx-community/granite-speech-4.1-2b-nar-mlx --model <ar-granite-repo>
 ```
 
 ### Run as macOS service (launchd)
