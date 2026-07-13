@@ -25,7 +25,7 @@ log/
 
 .envrc
 
-# Created at runtime by bench_models.py (cloned leaderboard scorer + manifest output):
+# Local ASR-leaderboard scorer clone + manifest output (eval scratch):
 open_asr_leaderboard/
 results/
 
