@@ -1,25 +1,31 @@
-# Wyoming MLX Whisper
+# Wyoming MLX Audio
 
-[![PyPI](https://img.shields.io/pypi/v/wyoming-mlx-whisper)](https://pypi.org/project/wyoming-mlx-whisper/)
-[![Python](https://img.shields.io/pypi/pyversions/wyoming-mlx-whisper)](https://pypi.org/project/wyoming-mlx-whisper/)
-[![License](https://img.shields.io/github/license/basnijholt/wyoming-mlx-whisper)](https://github.com/basnijholt/wyoming-mlx-whisper/blob/main/LICENSE)
-[![Pre-commit](https://github.com/basnijholt/wyoming-mlx-whisper/actions/workflows/pre-commit.yml/badge.svg)](https://github.com/basnijholt/wyoming-mlx-whisper/actions/workflows/pre-commit.yml)
+[Wyoming protocol](https://github.com/rhasspy/wyoming) server for
+[mlx-audio](https://github.com/Blaizzy/mlx-audio) speech-to-text on Apple Silicon,
+running **IBM Granite Speech** models via MLX. While other mlx-audio models should work
+in theory, we recommend use of Granite Speech.
 
-[Wyoming protocol](https://github.com/rhasspy/wyoming) server for [mlx-whisper](https://pypi.org/project/mlx-whisper) speech-to-text on Apple Silicon.
+Uses
+[`mlx-community/granite-speech-4.1-2b-nar-mlx`](https://huggingface.co/mlx-community/granite-speech-4.1-2b-nar-mlx)
+for fast, accurate ASR. This model is much faster than Whisper-Large-v3 and nearly twice
+as accurate. See the
+[Open ASR Leaderboard](https://huggingface.co/spaces/hf-audio/open_asr_leaderboard) for
+a detailed breakdown.
 
-Uses [`mlx-community/whisper-large-v3-turbo`](https://huggingface.co/mlx-community/whisper-large-v3-turbo) by default, which runs near real-time on M1 Pro and newer.
+> **Note on languages:** the NAR model is multilingual and auto-detects the spoken
+> language at inference time. It ignores any `language` argument — transcription only
+> (no translation). The language list advertised to Home Assistant is discovery
+> metadata.
 
 ### Available Models
 
-| Model | Size | Speed | Quality |
-|-------|------|-------|---------|
-| [`mlx-community/whisper-tiny`](https://huggingface.co/mlx-community/whisper-tiny) | 75 MB | ⚡⚡⚡ Fastest | Basic |
-| [`mlx-community/whisper-small-mlx`](https://huggingface.co/mlx-community/whisper-small-mlx) | 481 MB | ⚡⚡ Fast | Good |
-| [`mlx-community/whisper-large-v3-turbo`](https://huggingface.co/mlx-community/whisper-large-v3-turbo) | 1.6 GB | ⚡⚡ Near real-time | **Best** (default) |
-| [`mlx-community/whisper-large-v3-turbo-q4`](https://huggingface.co/mlx-community/whisper-large-v3-turbo-q4) | 464 MB | ⚡⚡ Near real-time | Near-best |
+| Model                                                                                                               | Size    | Type      | Notes                                                                       |
+| ------------------------------------------------------------------------------------------------------------------- | ------- | --------- | --------------------------------------------------------------------------- |
+| [`mlx-community/granite-speech-4.1-2b-nar-mlx`](https://huggingface.co/mlx-community/granite-speech-4.1-2b-nar-mlx) | ~4.5 GB | NAR (CTC) | **Default**. Transcription, multilingual auto-detect, no language steering. |
+| `mlx-community/granite-speech-4.0-...-mlx`                                                                          | varies  | AR        | Optional. Supports translation via `language=`. Add with `--model`.         |
 
-Use `--model <name>` to select a different model.
-Use `--initial-prompt <text>` to guide recognition with custom vocabulary.
+Use `--model <repo>` to add more models (repeatable). Use `--default-model <repo>` to
+pick which one Home Assistant uses when it doesn't name one.
 
 <details><summary><b><u>[ToC]</u></b> 📚</summary>
 
@@ -46,7 +52,7 @@ Use `--initial-prompt <text>` to guide recognition with custom vocabulary.
 ## Requirements
 
 - macOS with Apple Silicon (M1/M2/M3/M4)
-- Python 3.10-3.13 (3.14 not yet supported by numba)
+- Python 3.10-3.13 (3.14 not yet supported by the MLX stack)
 - [uv](https://docs.astral.sh/uv/) (recommended) or pip
 
 ## Installation
@@ -54,14 +60,15 @@ Use `--initial-prompt <text>` to guide recognition with custom vocabulary.
 ### Using uvx (recommended, no install needed)
 
 ```sh
-uvx --python 3.12 wyoming-mlx-whisper
+uvx --python 3.12 wyoming-mlx-audio
 ```
 
 ### Using pip
 
 ```sh
-pip install wyoming-mlx-whisper
-wyoming-mlx-whisper
+# TODO: publish on pypi
+pip install wyoming-mlx-audio
+wyoming-mlx-audio
 ```
 
 ## Usage
@@ -70,10 +77,29 @@ wyoming-mlx-whisper
 
 ```sh
 # With uvx (no install needed)
-uvx --python 3.12 wyoming-mlx-whisper
+uvx --python 3.12 wyoming-mlx-audio
 
 # Or if installed with pip
-wyoming-mlx-whisper
+wyoming-mlx-audio
+```
+
+The first run downloads the default Granite Speech NAR model (~4.5 GB). To pre-download
+without starting the server:
+
+```sh
+wyoming-mlx-audio --download-only
+```
+
+To load and warm up all models at startup (compiles Metal kernels once):
+
+```sh
+wyoming-mlx-audio --preload
+```
+
+To run more than one model and select per Home Assistant pipeline:
+
+```sh
+wyoming-mlx-audio --model mlx-community/granite-speech-4.1-2b-nar-mlx --model <ar-granite-repo>
 ```
 
 ### Run as macOS service (launchd)
@@ -81,57 +107,62 @@ wyoming-mlx-whisper
 Download and run the install script:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/basnijholt/wyoming-mlx-whisper/main/scripts/install_service.sh | bash
+curl -fsSL https://raw.githubusercontent.com/janbridley/wyoming-mlx-audio/main/scripts/install_service.sh | bash
 ```
 
-The server runs at `tcp://localhost:10300` by default.
+The server runs at `tcp://0.0.0.0:7891` by default.
 
 Uninstall the service:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/basnijholt/wyoming-mlx-whisper/main/scripts/uninstall_service.sh | bash
+curl -fsSL https://raw.githubusercontent.com/janbridley/wyoming-mlx-audio/main/scripts/uninstall_service.sh | bash
 ```
 
 View logs:
 
 ```sh
-tail -f ~/Library/Logs/wyoming-mlx-whisper/*.log
+tail -f ~/Library/Logs/wyoming-mlx-audio/*.log
 ```
 
 ## Options
 
 <details>
-<summary>See the output of <code>wyoming-mlx-whisper --help</code></summary>
+<summary>See the output of <code>wyoming-mlx-audio --help</code></summary>
 
 <!-- CODE:BASH:START -->
 <!-- echo '```' -->
-<!-- uv run wyoming-mlx-whisper --help -->
+<!-- uv run wyoming-mlx-audio --help -->
 <!-- echo '```' -->
 <!-- CODE:END -->
 <!-- OUTPUT:START -->
 <!-- ⚠️ This content is auto-generated by `markdown-code-runner`. -->
 ```
 
- Usage: wyoming-mlx-whisper [OPTIONS]
+ Usage: wyoming-mlx-audio [OPTIONS]
 
- Run the Wyoming MLX Whisper server.
+ Run the Wyoming MLX Audio (Granite Speech) server.
 
 ╭─ Options ──────────────────────────────────────────────────────────────────────────────╮
-│ --uri                               TEXT  unix:// or tcp://                            │
-│                                           [env var: WHISPER_URI]                       │
-│                                           [default: tcp://0.0.0.0:10300]               │
-│ --model                             TEXT  Name of MLX Whisper model to use             │
-│                                           [env var: WHISPER_MODEL]                     │
-│                                           [default:                                    │
-│                                           mlx-community/whisper-large-v3-turbo]        │
-│ --language                          TEXT  Language code (e.g., 'en')                   │
-│                                           [env var: WHISPER_LANGUAGE]                  │
-│ --initial-prompt                    TEXT  Initial prompt to guide Whisper recognition  │
-│                                           [env var: WHISPER_INITIAL_PROMPT]            │
-│ --debug               --no-debug          Log DEBUG messages  [env var: WHISPER_DEBUG] │
-│                                           [default: no-debug]                          │
-│ --version                                 Print version and exit                       │
-│ --help            -h                      Show this message and exit.                  │
+│ --uri                                TEXT  unix:// or tcp://                           │
+│                                            [env var: MLX_AUDIO_URI]                    │
+│                                            [default: tcp://0.0.0.0:7891]               │
+│ --model          -m                  TEXT  HuggingFace repo of an mlx-audio STT model  │
+│                                            [env var: MLX_AUDIO_MODEL]                  │
+│                                            [default:                                   │
+│                                            mlx-community/granite-speech-4.1-2b-nar-ml… │
+│ --preload            --no-preload          Load and warm up the model at startup       │
+│                                            [env var: MLX_AUDIO_PRELOAD]                │
+│                                            [default: no-preload]                       │
+│ --download-only                            Download the model and exit                 │
+│                                            [env var: MLX_AUDIO_DOWNLOAD_ONLY]          │
+│ --cache-dir                          TEXT  HuggingFace cache directory for model       │
+│                                            downloads                                   │
+│                                            [env var: MLX_AUDIO_CACHE_DIR]              │
+│ --debug              --no-debug            Log DEBUG messages                          │
+│                                            [env var: MLX_AUDIO_DEBUG]                  │
+│                                            [default: no-debug]                         │
+│ --version                                  Print version and exit                      │
+│ --help           -h                        Show this message and exit.                 │
 ╰────────────────────────────────────────────────────────────────────────────────────────╯
 
 ```
@@ -142,25 +173,54 @@ tail -f ~/Library/Logs/wyoming-mlx-whisper/*.log
 
 ## Home Assistant Integration
 
-1. Start the server (using any method above)
-2. In Home Assistant, go to **Settings → Devices & Services → Add Integration**
-3. Search for "Wyoming Protocol"
-4. Enter `localhost` (or your Mac's IP) and port `10300`
+1. Start the server (using any method above).
+2. In Home Assistant, go to **Settings → Devices & Services → Add Integration**.
+3. Search for "Wyoming Protocol".
+4. Enter your Mac's IP address and port `7891`.
+5. In an Assist pipeline, select the Granite Speech model as the speech-to-text
+   provider.
 
-The Whisper STT service will now be available for voice assistants.
+See the
+[Home Assistant voice control docs](https://www.home-assistant.io/voice_control/) for
+more.
+
+The Granite Speech STT service will now be available for voice assistants.
 
 ## Related Projects
 
-- **[agent-cli](https://github.com/basnijholt/agent-cli)** - Local-first AI-powered CLI agents for voice transcription, autocorrect, voice editing, and more. Uses `wyoming-mlx-whisper` as its default ASR backend on Apple Silicon.
+- **[agent-cli](https://github.com/basnijholt/agent-cli)** - Local-first AI-powered CLI
+  agents for voice transcription, autocorrect, voice editing, and more.
 
 ## Development
 
 ```sh
-uv sync
+uv sync --extra dev
 uv run pre-commit install
+```
+
+Run the test suite (mocked, no GPU needed):
+
+```sh
+uv run pytest
+```
+
+Lint and type-check:
+
+```sh
+uv run ruff check
+uv run mypy wyoming_mlx_audio
 ```
 
 ## Acknowledgements
 
-- Forked from [vincent861223/wyoming-mlx-whisper](https://github.com/vincent861223/wyoming-mlx-whisper) by Vincent Lin
-- Based on [wyoming-whisper-api-client](https://github.com/ser/wyoming-whisper-api-client) by Dr. Serge Victor
+- Forked from
+  [basnijholt/wyoming-mlx-whisper](https://github.com/basnijholt/wyoming-mlx-whisper) by
+  Bas Nijholt (itself forked from
+  [vincent861223/wyoming-mlx-whisper](https://github.com/vincent861223/wyoming-mlx-whisper)
+  by Vincent Lin, based on
+  [wyoming-whisper-api-client](https://github.com/ser/wyoming-whisper-api-client) by Dr.
+  Serge Victor).
+- Speech-to-text powered by [mlx-audio](https://github.com/Blaizzy/mlx-audio) by
+  Blaizzy.
+- Models from [IBM Granite Speech](https://huggingface.co/ibm-granite) and the
+  [mlx-community](https://huggingface.co/mlx-community).
