@@ -1530,7 +1530,6 @@ dependencies = [
     { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "numpy", version = "2.3.5", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
     { name = "rich" },
-    { name = "soundfile" },
     { name = "typer" },
     { name = "wyoming" },
 ]
@@ -1543,6 +1542,7 @@ dev = [
     { name = "pytest-asyncio" },
     { name = "pytest-cov" },
     { name = "ruff" },
+    { name = "soundfile" },
 ]
 
 [package.metadata]
@@ -1556,7 +1556,7 @@ requires-dist = [
     { name = "pytest-cov", marker = "extra == 'dev'" },
     { name = "rich" },
     { name = "ruff", marker = "extra == 'dev'" },
-    { name = "soundfile" },
+    { name = "soundfile", marker = "extra == 'dev'" },
     { name = "typer" },
     { name = "wyoming" },
 ]
