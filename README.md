@@ -28,7 +28,7 @@ a detailed breakdown.
 Use `--model <repo>` to add more models (repeatable). Use `--default-model <repo>` to
 pick which one Home Assistant uses when it doesn't name one.
 
-<details><summary><b><u>[ToC]</u></b> 📚</summary>
+<details><summary><b><u>[ToC]</u></b></summary>
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
