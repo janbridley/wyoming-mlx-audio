@@ -9,6 +9,7 @@ description = "Wyoming STT server for IBM Granite Speech via mlx-audio"
 readme = "README.md"
 license = "MIT"
 authors = [
+    { name = "Jenna Bradley", email = "bradleyjenj@gmail.com" },
     { name = "Bas Nijholt", email = "bas@nijho.lt" },
     { name = "Vincent Lin" },
 ]
@@ -28,7 +29,6 @@ dependencies = [
     "mlx-audio[stt]",
     "numpy",
     "rich",
-    "soundfile",
     "typer",
     "wyoming",
 ]
@@ -37,6 +37,7 @@ dependencies = [
 dev = [
     "pre-commit",
     "pytest",
+    "soundfile",  # only used by the dev transcribe.py client
     "pytest-asyncio",
     "pytest-cov",
     "mypy",
@@ -60,7 +61,6 @@ target-version = "py310"
 line-length = 88
 extend-exclude = [
     "mlx-audio", # git submodule (third-party fork) -- has its own lint config
-    "bench_models.py", # root-level dev benchmark script, intentionally not lint-clean
     "client.py", # root-level dev Wyoming client, intentionally not lint-clean
     "transcribe.py", # root-level dev Wyoming client, intentionally not lint-clean
 ]
