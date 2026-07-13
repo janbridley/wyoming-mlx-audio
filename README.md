@@ -143,28 +143,26 @@ tail -f ~/Library/Logs/wyoming-mlx-audio/*.log
 
  Run the Wyoming MLX Audio (Granite Speech) server.
 
-╭─ Options ──────────────────────────────────────────────────────────────────────────────╮
-│ --uri                                TEXT  unix:// or tcp://                           │
-│                                            [env var: MLX_AUDIO_URI]                    │
-│                                            [default: tcp://0.0.0.0:7891]               │
-│ --model          -m                  TEXT  HuggingFace repo of an mlx-audio STT model  │
-│                                            [env var: MLX_AUDIO_MODEL]                  │
-│                                            [default:                                   │
-│                                            mlx-community/granite-speech-4.1-2b-nar-ml… │
-│ --preload            --no-preload          Load and warm up the model at startup       │
-│                                            [env var: MLX_AUDIO_PRELOAD]                │
-│                                            [default: no-preload]                       │
-│ --download-only                            Download the model and exit                 │
-│                                            [env var: MLX_AUDIO_DOWNLOAD_ONLY]          │
-│ --cache-dir                          TEXT  HuggingFace cache directory for model       │
-│                                            downloads                                   │
-│                                            [env var: MLX_AUDIO_CACHE_DIR]              │
-│ --debug              --no-debug            Log DEBUG messages                          │
-│                                            [env var: MLX_AUDIO_DEBUG]                  │
-│                                            [default: no-debug]                         │
-│ --version                                  Print version and exit                      │
-│ --help           -h                        Show this message and exit.                 │
-╰────────────────────────────────────────────────────────────────────────────────────────╯
+╭─ Options ──────────────────────────────────────────────────────────────────────────────────╮
+│ --uri                                TEXT  unix:// or tcp://                               │
+│                                            [env var: MLX_AUDIO_URI]                        │
+│                                            [default: tcp://0.0.0.0:7891]                   │
+│ --model          -m                  TEXT  HuggingFace repo of an mlx-audio STT model      │
+│                                            [env var: MLX_AUDIO_MODEL]                      │
+│                                            [default:                                       │
+│                                            mlx-community/granite-speech-4.1-2b-nar-mlx]    │
+│ --preload            --no-preload          Load and warm up the model at startup           │
+│                                            [env var: MLX_AUDIO_PRELOAD]                    │
+│                                            [default: no-preload]                           │
+│ --download-only                            Download the model and exit                     │
+│                                            [env var: MLX_AUDIO_DOWNLOAD_ONLY]              │
+│ --cache-dir                          TEXT  HuggingFace cache directory for model downloads │
+│                                            [env var: MLX_AUDIO_CACHE_DIR]                  │
+│ --debug              --no-debug            Log DEBUG messages  [env var: MLX_AUDIO_DEBUG]  │
+│                                            [default: no-debug]                             │
+│ --version                                  Print version and exit                          │
+│ --help           -h                        Show this message and exit.                     │
+╰────────────────────────────────────────────────────────────────────────────────────────────╯
 ```
 
 <!-- OUTPUT:END -->
