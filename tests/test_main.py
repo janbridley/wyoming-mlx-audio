@@ -7,8 +7,8 @@ import pytest
 import typer
 from typer.testing import CliRunner
 
-from wyoming_mlx_whisper import __version__
-from wyoming_mlx_whisper.__main__ import (
+from wyoming_mlx_audio import __version__
+from wyoming_mlx_audio.__main__ import (
     DEFAULT_MODEL,
     DEFAULT_URI,
     app,
@@ -62,7 +62,7 @@ class TestCLI:
 
     def test_main_calls_run_server(self, runner: CliRunner) -> None:
         """Test that main() calls run_server with correct arguments."""
-        with patch("wyoming_mlx_whisper.server.run_server") as mock_run:
+        with patch("wyoming_mlx_audio.server.run_server") as mock_run:
             runner.invoke(
                 app,
                 [
@@ -88,7 +88,7 @@ class TestCLI:
 
     def test_main_with_debug(self, runner: CliRunner) -> None:
         """Test that debug flag is passed correctly."""
-        with patch("wyoming_mlx_whisper.server.run_server") as mock_run:
+        with patch("wyoming_mlx_audio.server.run_server") as mock_run:
             runner.invoke(app, ["--debug"])
 
             mock_run.assert_called_once()
@@ -96,7 +96,7 @@ class TestCLI:
 
     def test_main_with_env_vars(self, runner: CliRunner) -> None:
         """Test that environment variables are respected."""
-        with patch("wyoming_mlx_whisper.server.run_server") as mock_run:
+        with patch("wyoming_mlx_audio.server.run_server") as mock_run:
             runner.invoke(
                 app,
                 [],

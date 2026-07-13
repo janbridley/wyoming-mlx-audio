@@ -1,12 +1,12 @@
 #!/bin/bash
 set -e
 
-PLIST_NAME="com.wyoming_mlx_whisper.plist"
+PLIST_NAME="com.wyoming_mlx_audio.plist"
 PLIST_DST="$HOME/Library/LaunchAgents/$PLIST_NAME"
-LOG_DIR="$HOME/Library/Logs/wyoming-mlx-whisper"
-PLIST_URL="https://raw.githubusercontent.com/basnijholt/wyoming-mlx-whisper/main/scripts/$PLIST_NAME"
+LOG_DIR="$HOME/Library/Logs/wyoming-mlx-audio"
+PLIST_URL="https://raw.githubusercontent.com/janbridley/wyoming-mlx-audio/main/scripts/$PLIST_NAME"
 
-echo "Installing Wyoming MLX Whisper service..."
+echo "Installing Wyoming MLX Audio (Granite Speech) service..."
 
 # Find uv - prefer system paths over virtualenv
 find_uv() {
@@ -58,4 +58,4 @@ echo "Service installed and started."
 echo "Logs: $LOG_DIR/"
 echo ""
 echo "To uninstall, run:"
-echo "  curl -fsSL https://raw.githubusercontent.com/basnijholt/wyoming-mlx-whisper/main/scripts/uninstall_service.sh | bash"
+echo "  curl -fsSL https://raw.githubusercontent.com/janbridley/wyoming-mlx-audio/main/scripts/uninstall_service.sh | bash"

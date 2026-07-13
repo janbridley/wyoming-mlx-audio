@@ -1,10 +1,10 @@
 #!/bin/bash
 set -e
 
-PLIST_NAME="com.wyoming_mlx_whisper.plist"
+PLIST_NAME="com.wyoming_mlx_audio.plist"
 PLIST_DST="$HOME/Library/LaunchAgents/$PLIST_NAME"
 
-echo "Uninstalling Wyoming MLX Whisper service..."
+echo "Uninstalling Wyoming MLX Audio (Granite Speech) service..."
 
 if [ -f "$PLIST_DST" ]; then
     launchctl bootout gui/$UID "$PLIST_DST" 2>/dev/null || true

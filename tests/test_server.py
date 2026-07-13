@@ -3,9 +3,9 @@
 import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from wyoming_mlx_whisper import __version__
-from wyoming_mlx_whisper.const import WHISPER_LANGUAGES
-from wyoming_mlx_whisper.server import _create_wyoming_info, run_server
+from wyoming_mlx_audio import __version__
+from wyoming_mlx_audio.const import WHISPER_LANGUAGES
+from wyoming_mlx_audio.server import _create_wyoming_info, run_server
 
 
 class TestCreateWyomingInfo:
@@ -61,9 +61,9 @@ class TestRunServer:
     def test_logs_startup_banner(self) -> None:
         """Test that run_server logs startup information."""
         with (
-            patch("wyoming_mlx_whisper.server._LOGGER") as mock_logger,
-            patch("wyoming_mlx_whisper.server.load_model"),
-            patch("wyoming_mlx_whisper.server.asyncio.run"),
+            patch("wyoming_mlx_audio.server._LOGGER") as mock_logger,
+            patch("wyoming_mlx_audio.server.load_model"),
+            patch("wyoming_mlx_audio.server.asyncio.run"),
         ):
             run_server(
                 uri="tcp://localhost:10300",
@@ -81,9 +81,9 @@ class TestRunServer:
     def test_loads_model(self) -> None:
         """Test that run_server loads the specified model."""
         with (
-            patch("wyoming_mlx_whisper.server._LOGGER"),
-            patch("wyoming_mlx_whisper.server.load_model") as mock_load,
-            patch("wyoming_mlx_whisper.server.asyncio.run"),
+            patch("wyoming_mlx_audio.server._LOGGER"),
+            patch("wyoming_mlx_audio.server.load_model") as mock_load,
+            patch("wyoming_mlx_audio.server.asyncio.run"),
         ):
             run_server(
                 uri="tcp://localhost:10300",
@@ -97,9 +97,9 @@ class TestRunServer:
     def test_runs_async_server(self) -> None:
         """Test that run_server starts the async server."""
         with (
-            patch("wyoming_mlx_whisper.server._LOGGER"),
-            patch("wyoming_mlx_whisper.server.load_model"),
-            patch("wyoming_mlx_whisper.server.asyncio.run") as mock_run,
+            patch("wyoming_mlx_audio.server._LOGGER"),
+            patch("wyoming_mlx_audio.server.load_model"),
+            patch("wyoming_mlx_audio.server.asyncio.run") as mock_run,
         ):
             run_server(
                 uri="tcp://localhost:10300",
@@ -115,10 +115,10 @@ class TestRunServer:
     def test_handles_keyboard_interrupt(self) -> None:
         """Test that KeyboardInterrupt is handled gracefully."""
         with (
-            patch("wyoming_mlx_whisper.server._LOGGER"),
-            patch("wyoming_mlx_whisper.server.load_model"),
+            patch("wyoming_mlx_audio.server._LOGGER"),
+            patch("wyoming_mlx_audio.server.load_model"),
             patch(
-                "wyoming_mlx_whisper.server.asyncio.run",
+                "wyoming_mlx_audio.server.asyncio.run",
                 side_effect=KeyboardInterrupt,
             ),
         ):
@@ -133,9 +133,9 @@ class TestRunServer:
     def test_logs_language_auto_when_none(self) -> None:
         """Test that 'auto' is logged when language is None."""
         with (
-            patch("wyoming_mlx_whisper.server._LOGGER") as mock_logger,
-            patch("wyoming_mlx_whisper.server.load_model"),
-            patch("wyoming_mlx_whisper.server.asyncio.run"),
+            patch("wyoming_mlx_audio.server._LOGGER") as mock_logger,
+            patch("wyoming_mlx_audio.server.load_model"),
+            patch("wyoming_mlx_audio.server.asyncio.run"),
         ):
             run_server(
                 uri="tcp://localhost:10300",
@@ -155,15 +155,15 @@ class TestRunServer:
         mock_server.run = AsyncMock()
 
         with (
-            patch("wyoming_mlx_whisper.server._LOGGER"),
-            patch("wyoming_mlx_whisper.server.load_model"),
+            patch("wyoming_mlx_audio.server._LOGGER"),
+            patch("wyoming_mlx_audio.server.load_model"),
             patch(
-                "wyoming_mlx_whisper.server.AsyncServer.from_uri",
+                "wyoming_mlx_audio.server.AsyncServer.from_uri",
                 return_value=mock_server,
             ),
-            patch("wyoming_mlx_whisper.server.WhisperEventHandler") as mock_handler,
+            patch("wyoming_mlx_audio.server.WhisperEventHandler") as mock_handler,
             patch(
-                "wyoming_mlx_whisper.server.asyncio.run",
+                "wyoming_mlx_audio.server.asyncio.run",
                 side_effect=lambda coro, debug: real_asyncio_run(coro, debug=debug),
             ),
         ):

@@ -1,6 +1,6 @@
 """Tests for the const module."""
 
-from wyoming_mlx_whisper.const import WHISPER_LANGUAGES
+from wyoming_mlx_audio.const import WHISPER_LANGUAGES
 
 
 class TestWhisperLanguages:

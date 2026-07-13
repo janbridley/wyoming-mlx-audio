@@ -3,7 +3,7 @@ requires = ["hatchling", "hatch-vcs"]
 build-backend = "hatchling.build"
 
 [project]
-name = "wyoming-mlx-whisper"
+name = "wyoming-mlx-audio"
 dynamic = ["version"]
 description = "Wyoming Server for MLX whisper"
 readme = "README.md"
@@ -43,11 +43,11 @@ dev = [
 ]
 
 [project.scripts]
-wyoming-mlx-whisper = "wyoming_mlx_whisper.__main__:run"
+wyoming-mlx-audio = "wyoming_mlx_audio.__main__:run"
 
 [project.urls]
-Homepage = "https://github.com/basnijholt/wyoming-mlx-whisper"
-Repository = "https://github.com/basnijholt/wyoming-mlx-whisper.git"
+Homepage = "https://github.com/janbridley/wyoming-mlx-audio"
+Repository = "https://github.com/janbridley/wyoming-mlx-audio.git"
 
 [tool.ruff]
 target-version = "py310"
@@ -63,7 +63,7 @@ ignore = [
 ]
 
 [tool.ruff.lint.isort]
-known-first-party = ["wyoming_mlx_whisper"]
+known-first-party = ["wyoming_mlx_audio"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**/*.py" = [
@@ -71,14 +71,14 @@ known-first-party = ["wyoming_mlx_whisper"]
     "SLF001",  # private member access allowed in tests
     "PLR2004", # magic values allowed in tests
 ]
-"wyoming_mlx_whisper/__main__.py" = [
+"wyoming_mlx_audio/__main__.py" = [
     "PLC0415", # lazy import for fast --help
 ]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
-addopts = "--cov=wyoming_mlx_whisper --cov-report=term-missing"
+addopts = "--cov=wyoming_mlx_audio --cov-report=term-missing"
 filterwarnings = [
     "ignore:coroutine .* was never awaited:RuntimeWarning",
 ]
@@ -96,4 +96,4 @@ ignore_missing_imports = true
 source = "vcs"
 
 [tool.hatch.build.hooks.vcs]
-version-file = "wyoming_mlx_whisper/_version.py"
+version-file = "wyoming_mlx_audio/_version.py"

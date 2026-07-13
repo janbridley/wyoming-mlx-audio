@@ -9,7 +9,7 @@ from wyoming.audio import AudioChunk, AudioStop
 from wyoming.event import Event
 from wyoming.info import Describe, Info
 
-from wyoming_mlx_whisper.handler import WhisperEventHandler, _pcm_to_float
+from wyoming_mlx_audio.handler import WhisperEventHandler, _pcm_to_float
 
 
 class TestPcmToFloat:
@@ -182,7 +182,7 @@ class TestWhisperEventHandler:
         """Test that _transcribe calls mlx_whisper correctly."""
         audio = np.zeros(16000, dtype=np.float32)
 
-        with patch("wyoming_mlx_whisper.handler.mlx_whisper") as mock_mlx:
+        with patch("wyoming_mlx_audio.handler.mlx_whisper") as mock_mlx:
             mock_mlx.transcribe.return_value = {"text": "test transcription"}
             result = handler._transcribe(audio)
 
@@ -207,7 +207,7 @@ class TestWhisperEventHandler:
         )
         audio = np.zeros(16000, dtype=np.float32)
 
-        with patch("wyoming_mlx_whisper.handler.mlx_whisper") as mock_mlx:
+        with patch("wyoming_mlx_audio.handler.mlx_whisper") as mock_mlx:
             mock_mlx.transcribe.return_value = {"text": "hello"}
             result = handler._transcribe(audio)
 
@@ -256,7 +256,7 @@ class TestWhisperEventHandler:
         handler._initial_prompt = "Custom vocabulary hint"
         audio = np.zeros(16000, dtype=np.float32)
 
-        with patch("wyoming_mlx_whisper.handler.mlx_whisper") as mock_mlx:
+        with patch("wyoming_mlx_audio.handler.mlx_whisper") as mock_mlx:
             mock_mlx.transcribe.return_value = {"text": "transcribed text"}
             result = handler._transcribe(audio)
 
@@ -281,7 +281,7 @@ class TestWhisperEventHandler:
         )
         audio = np.zeros(16000, dtype=np.float32)
 
-        with patch("wyoming_mlx_whisper.handler.mlx_whisper") as mock_mlx:
+        with patch("wyoming_mlx_audio.handler.mlx_whisper") as mock_mlx:
             mock_mlx.transcribe.return_value = {"text": "transcribed text"}
             result = handler._transcribe(audio)
 
